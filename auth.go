@@ -8,13 +8,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const (
-	defaultSessionID        = "default"
-	googleProfileSessionKey = "google_profile"
-	oauthTokenSessionKey    = "oauth_token"
-	oauthFlowRedirectKey    = "redirect"
-)
-
 func init() {
 	// Gob encoding for gorilla/sessions
 	gob.Register(&oauth2.Token{})
