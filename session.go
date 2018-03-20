@@ -1,6 +1,11 @@
 package oauth
 
-import uuid "github.com/satori/go.uuid"
+import (
+	"net/http"
+
+	"github.com/gorilla/sessions"
+	uuid "github.com/satori/go.uuid"
+)
 
 const (
 	defaultSessionID        = "default"
@@ -9,12 +14,24 @@ const (
 	oauthFlowRedirectKey    = "redirect"
 )
 
-func buildSessionID() (string, error) {
-	var sessionID string
-	u, err := uuid.NewV4()
+var (
+	sessionStore sessions.Store
+)
+
+func init() {
+	sessionStore = sessions.NewCookieStore([]byte(buildRandomString()))
+}
+
+func buildRandomString() string {
+	return uuid.Must(uuid.NewV4()).String()
+}
+
+func getOauthFlowSession(r *http.Request, sessionID string) (*sessions.Session, error) {
+	var oauthFlowSession *sessions.Session
+	oauthFlowSession, err := sessionStore.New(r, sessionID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	sessionID = u.String()
-	return sessionID, nil
+	oauthFlowSession.Options.MaxAge = 10 * 60 // 10 minutes
+	return oauthFlowSession, nil
 }
