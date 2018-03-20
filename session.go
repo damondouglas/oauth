@@ -12,6 +12,8 @@ const (
 	googleProfileSessionKey = "google_profile"
 	oauthTokenSessionKey    = "oauth_token"
 	oauthFlowRedirectKey    = "redirect"
+	oauthStateKey           = "state"
+	oauthCodeKey            = "code"
 )
 
 var (
