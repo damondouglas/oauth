@@ -23,7 +23,7 @@ func handleError(w http.ResponseWriter, err error) {
 // LoginHandler redirects user to oauth flow
 func LoginHandler(auth *Auth, force bool, offline bool) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		redirectURL := auth.BuildRedirectURL(force, offline)
+		redirectURL := auth.BuildRedirectURL(force, offline, "")
 		sessionID := redirectURL.SessionID
 		oauthFlowSession, err := getOauthFlowSession(r, sessionID)
 		handleError(w, err)

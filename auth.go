@@ -19,10 +19,14 @@ type RedirectURL struct {
 	Value     string
 }
 
-func newRedirectURL(config *oauth2.Config, force bool, offline bool) *RedirectURL {
+func newRedirectURL(config *oauth2.Config, force bool, offline bool, state string) *RedirectURL {
 	var r *RedirectURL
 	r = new(RedirectURL)
-	r.SessionID = buildRandomString()
+	if state != "" {
+		r.SessionID = state
+	} else {
+		r.SessionID = buildRandomString()
+	}
 
 	var offlineOpt oauth2.AuthCodeOption
 	if offline {
@@ -56,8 +60,8 @@ func New(pathToCredentials string, oauthFlowURL string, scopes []string) (*Auth,
 }
 
 // BuildRedirectURL builds url for oauth flow
-func (a *Auth) BuildRedirectURL(force bool, offline bool) *RedirectURL {
-	return newRedirectURL(a.config, force, offline)
+func (a *Auth) BuildRedirectURL(force bool, offline bool, state string) *RedirectURL {
+	return newRedirectURL(a.config, force, offline, state)
 }
 
 func validateRedirectURL(path string) (string, error) {

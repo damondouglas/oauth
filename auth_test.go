@@ -19,7 +19,7 @@ func TestBuildRedirectURL(t *testing.T) {
 	a.Equals(err, nil)
 	a.NotEquals(auth, nil)
 
-	redirectURL = auth.BuildRedirectURL(false, false)
+	redirectURL = auth.BuildRedirectURL(false, false, "")
 	a.NotEquals(redirectURL.SessionID, nil)
 	a.Equals(strings.HasPrefix(redirectURL.Value, "https://accounts.google.com/o/oauth2"), true)
 	u, err = url.Parse(redirectURL.Value)
@@ -31,7 +31,7 @@ func TestBuildRedirectURL(t *testing.T) {
 	a.Equals(q.Get("approval_prompt"), "")
 	a.Equals(q.Get("state"), redirectURL.SessionID)
 
-	redirectURL = auth.BuildRedirectURL(true, false)
+	redirectURL = auth.BuildRedirectURL(true, false, "")
 	t.Logf("value: %v", redirectURL)
 	a.NotEquals(redirectURL.SessionID, nil)
 	a.Equals(strings.HasPrefix(redirectURL.Value, "https://accounts.google.com/o/oauth2"), true)
@@ -44,7 +44,7 @@ func TestBuildRedirectURL(t *testing.T) {
 	a.Equals(q.Get("approval_prompt"), "force")
 	a.Equals(q.Get("state"), redirectURL.SessionID)
 
-	redirectURL = auth.BuildRedirectURL(false, true)
+	redirectURL = auth.BuildRedirectURL(false, true, "")
 	t.Logf("value: %v", redirectURL)
 	a.NotEquals(redirectURL.SessionID, nil)
 	a.Equals(strings.HasPrefix(redirectURL.Value, "https://accounts.google.com/o/oauth2"), true)
@@ -57,7 +57,7 @@ func TestBuildRedirectURL(t *testing.T) {
 	a.Equals(q.Get("approval_prompt"), "")
 	a.Equals(q.Get("state"), redirectURL.SessionID)
 
-	redirectURL = auth.BuildRedirectURL(true, true)
+	redirectURL = auth.BuildRedirectURL(true, true, "")
 	t.Logf("value: %v", redirectURL)
 	a.NotEquals(redirectURL.SessionID, nil)
 	a.Equals(strings.HasPrefix(redirectURL.Value, "https://accounts.google.com/o/oauth2"), true)
