@@ -6,22 +6,21 @@ import (
 )
 
 type config struct {
-	Web *WebOauthConfig `json:"web"`
+	Web *webOauthConfig `json:"web"`
 }
 
-// WebOauthConfig stores oauth web client credentials
-type WebOauthConfig struct {
+type webOauthConfig struct {
 	ClientID     string `json:"client_id"`
 	ClientSecret string `json:"client_secret"`
 }
 
-func configureOauthFromData(data []byte) *WebOauthConfig {
+func configureOauthFromData(data []byte) *webOauthConfig {
 	var c *config
 	json.Unmarshal(data, &c)
 	return c.Web
 }
 
-func configureOauthFromFilePath(pathToCredentials string) (*WebOauthConfig, error) {
+func configureOauthFromFilePath(pathToCredentials string) (*webOauthConfig, error) {
 	data, err := ioutil.ReadFile(pathToCredentials)
 	if err != nil {
 		return nil, err
