@@ -5,30 +5,39 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"golang.org/x/oauth2"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"golang.org/x/oauth2"
 )
 
 const tokenRefreshEndpoint = "https://www.googleapis.com/oauth2/v4/token"
 
-// Handler provides oauth flow function handlers
-type Handler struct {
-	ctx         context.Context
-	cred        *webOauthConfig
-	config      *oauth2.Config
-	client	*http.Client
-	force       bool
-	offline     bool
-	redirectURL string
-	authURL     string
+type ClientBuilder interface {
+	Client(context.Context) *http.Client
 }
 
-func NewHandler(client *http.Client, ctx context.Context, pathToSecret string, force bool, offline bool, redirectURL string, scopes []string) (*Handler, error) {
+type ContextBuilder interface {
+	Context(*http.Request) context.Context
+}
+
+// Handler provides oauth flow function handlers
+type Handler struct {
+	clientBuilder  ClientBuilder
+	contextBuilder ContextBuilder
+	cred           *webOauthConfig
+	config         *oauth2.Config
+	force          bool
+	offline        bool
+	redirectURL    string
+	authURL        string
+}
+
+func NewHandler(clientBuilder ClientBuilder, contextBuilder ContextBuilder, pathToSecret string, force bool, offline bool, redirectURL string, scopes []string) (*Handler, error) {
 	cred, err := configureOauthFromFilePath(pathToSecret)
 	if err != nil {
 		return nil, err
@@ -38,7 +47,8 @@ func NewHandler(client *http.Client, ctx context.Context, pathToSecret string, f
 		return nil, err
 	}
 	handler := new(Handler)
-	handler.ctx = ctx
+	handler.clientBuilder = clientBuilder
+	handler.contextBuilder = contextBuilder
 	handler.cred = cred
 	handler.config = config
 	handler.force = force
@@ -66,7 +76,7 @@ func (h *Handler) buildAuthorizeURL(state string) string {
 }
 
 // Authorize handles oauth flow initialization.
-func (h *Handler) Authorize(w http.ResponseWriter, r *http.Reader) {
+func (h *Handler) Authorize(w http.ResponseWriter, r *http.Request) {
 	qry := r.URL.Query()
 	state := qry.Get("state")
 	url := h.buildAuthorizeURL(state)
@@ -80,7 +90,7 @@ type tokenRedirect struct {
 	Redirect string
 }
 
-func (h *Handler) Token(w http.ResponseWriter, r *http.Reader) {
+func (h *Handler) Token(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		h.code(w, r)
 	}
@@ -89,7 +99,7 @@ func (h *Handler) Token(w http.ResponseWriter, r *http.Reader) {
 	}
 }
 
-func (h *Handler) code(w http.ResponseWriter, r *http.Reader) {
+func (h *Handler) code(w http.ResponseWriter, r *http.Request) {
 	qry := r.URL.Query()
 	state := qry.Get("state")
 	code := qry.Get("code")
@@ -120,7 +130,7 @@ func read(r *http.Request) ([]byte, error) {
 	return body, nil
 }
 
-func (h *Handler) exchange(w http.ResponseWriter, r *http.Reader) {
+func (h *Handler) exchange(w http.ResponseWriter, r *http.Request) {
 	data, err := read(r)
 	if err != nil {
 		log.Panic(err)
@@ -134,13 +144,14 @@ func (h *Handler) exchange(w http.ResponseWriter, r *http.Reader) {
 	}
 }
 
-func (h *Handler) exchangeCode(w http.ResponseWriter, r *http.Reader, data []byte) {
+func (h *Handler) exchangeCode(w http.ResponseWriter, r *http.Request, data []byte) {
 	qry, err := url.ParseQuery(string(data))
 	if err != nil {
 		log.Panic(err)
 	}
 	code := qry.Get("code")
-	tok, err := h.config.Exchange(h.ctx, code)
+	ctx := h.contextBuilder.Context(r)
+	tok, err := h.config.Exchange(ctx, code)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -151,7 +162,7 @@ func (h *Handler) exchangeCode(w http.ResponseWriter, r *http.Reader, data []byt
 	fmt.Fprintln(w, string(tokData))
 }
 
-func (h *Handler) exchangeRefresh(w http.ResponseWriter, r *http.Reader, data []byte) {
+func (h *Handler) exchangeRefresh(w http.ResponseWriter, r *http.Request, data []byte) {
 	qry, err := url.ParseQuery(string(data))
 	if err != nil {
 		log.Panic(err)
@@ -167,8 +178,9 @@ func (h *Handler) exchangeRefresh(w http.ResponseWriter, r *http.Reader, data []
 	qry.Add("refresh_token", code)
 	qry.Add("grant_type", "refresh_token")
 	body := strings.NewReader(qry.Encode())
-
-	resp, err := h.client.Post(tokenRefreshEndpoint, "application/x-www-form-urlencoded", body)
+	ctx := h.contextBuilder.Context(r)
+	client := h.clientBuilder.Client(ctx)
+	resp, err := client.Post(tokenRefreshEndpoint, "application/x-www-form-urlencoded", body)
 	if err != nil {
 		log.Panic(err)
 	}
