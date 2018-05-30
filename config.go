@@ -1,29 +1,51 @@
 package oauth
 
 import (
-	"encoding/json"
-	"io/ioutil"
+	"sort"
+
+	"golang.org/x/oauth2/google"
+
+	"golang.org/x/oauth2"
 )
 
-type config struct {
-	Web *webOauthConfig `json:"web"`
+var baseScopes = []string{"email", "profile"}
+
+func mergeScopesFromBase(scopes []string) []string {
+	var mergedScopes []string
+	for _, value := range baseScopes {
+		mergedScopes = append(mergedScopes, value)
+	}
+	sort.Strings(mergedScopes)
+	for _, value := range scopes {
+		i := sort.SearchStrings(mergedScopes, value)
+		if i == len(mergedScopes) {
+			mergedScopes = append(mergedScopes, value)
+			sort.Strings(mergedScopes)
+		}
+		if i < len(mergedScopes) && mergedScopes[i] != value {
+			mergedScopes = append(mergedScopes, value)
+			sort.Strings(mergedScopes)
+		}
+	}
+	return mergedScopes
 }
 
-type webOauthConfig struct {
-	ClientID     string `json:"client_id"`
-	ClientSecret string `json:"client_secret"`
+func newOauthConfig(clientID, clientSecret, redirectURL string, scopes []string) *oauth2.Config {
+	mergedScopes := mergeScopesFromBase(scopes)
+	return &oauth2.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RedirectURL:  redirectURL,
+		Scopes:       mergedScopes,
+		Endpoint:     google.Endpoint,
+	}
 }
 
-func configureOauthFromData(data []byte) *webOauthConfig {
-	var c *config
-	json.Unmarshal(data, &c)
-	return c.Web
-}
-
-func configureOauthFromFilePath(pathToCredentials string) (*webOauthConfig, error) {
-	data, err := ioutil.ReadFile(pathToCredentials)
+// ConfigFromPath returns oauth2.Config from path to credentials.
+func ConfigFromPath(credentialsPath string, redirectURL string, scopes []string) (*oauth2.Config, error) {
+	cred, err := credentialsFromPath(credentialsPath)
 	if err != nil {
 		return nil, err
 	}
-	return configureOauthFromData(data), nil
+	return newOauthConfig(cred.ClientID, cred.ClientSecret, redirectURL, scopes), nil
 }

@@ -6,20 +6,52 @@ import (
 	"github.com/damondouglas/assert"
 )
 
-func TestConfigureOauthFromData(t *testing.T) {
+func TestMergeScopesFromBase(t *testing.T) {
 	a := assert.New(t)
-	data := []byte(`{"web": {"client_id": "foo", "client_secret": "bar"}}`)
-	config := configureOauthFromData(data)
-	a.NotEquals(config, nil)
-	a.Equals(config.ClientID, "foo")
-	a.Equals(config.ClientSecret, "bar")
+	scopes := mergeScopesFromBase(nil)
+	a.NotEquals(scopes, nil)
+	a.Equals(len(scopes), 2)
+
+	scopes = mergeScopesFromBase([]string{})
+	a.NotEquals(scopes, nil)
+	a.Equals(len(scopes), 2)
+
+	scopes = mergeScopesFromBase([]string{"foo"})
+	a.NotEquals(scopes, nil)
+	a.Equals(len(scopes), 3)
+	a.Equals(scopes[0], "email")
+	a.Equals(scopes[1], "foo")
+	a.Equals(scopes[2], "profile")
+
+	scopes = mergeScopesFromBase([]string{"email"})
+	a.NotEquals(scopes, nil)
+	a.Equals(len(scopes), 2)
+	a.Equals(scopes[0], "email")
+	a.Equals(scopes[1], "profile")
+
+	scopes = mergeScopesFromBase([]string{"profile"})
+	a.NotEquals(scopes, nil)
+	a.Equals(len(scopes), 2)
+	a.Equals(scopes[0], "email")
+	a.Equals(scopes[1], "profile")
+
+	scopes = mergeScopesFromBase([]string{"email", "profile", "foo"})
+	a.NotEquals(scopes, nil)
+	a.Equals(len(scopes), 3)
+	a.Equals(scopes[0], "email")
+	a.Equals(scopes[1], "foo")
+	a.Equals(scopes[2], "profile")
 }
 
-func TestConfigureOauthFromFilePath(t *testing.T) {
+func TestBuildOauthClientFromCredentialsPath(t *testing.T) {
 	a := assert.New(t)
-	config, err := configureOauthFromFilePath("./mock/client_secret.json")
+	path := "./mock/client_secret.json"
+	redirectURL := "http://localhost:8080/oauth2callback"
+	config, err := ConfigFromPath(path, redirectURL, nil)
 	a.Equals(err, nil)
 	a.NotEquals(config, nil)
 	a.Equals(config.ClientID, "some_client_id.apps.googleusercontent.com")
 	a.Equals(config.ClientSecret, "some_client_secret")
+	a.Equals(config.Scopes[0], "email")
+	a.Equals(config.Scopes[1], "profile")
 }
