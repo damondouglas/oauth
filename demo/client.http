@@ -21,12 +21,7 @@ GET http://localhost:8080
 # Paste ENTIRE response below this line
 ###################################
 
-###################################
-# STEP 3
-# Open the following URL and add https://b03e7049.ngrok.io/step1 to Authorized redirect URIs:
-# 
-# https://console.developers.google.com/apis/credentials/oauthclient/129344683499-5kibsu4hshj4jqjp7q01shd2o29r8rfh.apps.googleusercontent.com
-###################################
+
 
 ###################################
 # STEP 4 
