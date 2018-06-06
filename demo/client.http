@@ -1,0 +1,75 @@
+
+
+###################################
+# Dependencies:
+# https://ngrok.io
+# https://github.com/Huachao/vscode-restclient
+###################################
+
+###################################
+# STEP 1
+# $ bash ./tool/run.sh
+# $ bash ./tool/tunnel.sh
+# $ bash ./tool/dumptunnelinfo.sh
+# Send Request below
+###################################
+
+GET http://localhost:8080
+
+###################################
+# STEP 2
+# Paste ENTIRE response below this line
+###################################
+
+###################################
+# STEP 3
+# Open the following URL and add https://b03e7049.ngrok.io/step1 to Authorized redirect URIs:
+# 
+# https://console.developers.google.com/apis/credentials/oauthclient/129344683499-5kibsu4hshj4jqjp7q01shd2o29r8rfh.apps.googleusercontent.com
+###################################
+
+###################################
+# STEP 4 
+# Intiate OAuth Flow
+# In response from below request, 
+# click on link in value attribute in response (maybe at line 1315)
+# <input type="hidden" name="continue" value="...">
+# Paste browser response below Step 5 directions
+###################################
+
+GET {{base}}/auth?client_id={{client_id}}&redirect_uri={{redirect}}&state={{state}}&scope={{scope}}&response_type=code
+
+###################################
+# STEP 5
+# Paste response from flow in STEP 4 below these directions
+# @code = ...
+###################################
+
+
+###################################
+# STEP 6
+# Exchange code for refresh and authorization tokens.
+###################################
+
+POST {{base}}/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{client_id}}&client_secret={{client_secret}}&grant_type=authorization_code&code={{code}}
+
+###################################
+# STEP 7 
+# Create variables below from response in STEP 6
+# @access_token = ...
+# @refresh_token = ...
+###################################
+
+
+###################################
+# STEP 7 
+# Send refresh request.
+###################################
+
+POST {{base}}/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{client_id}}&client_secret={{client_secret}}&grant_type=refresh_token&refresh_token={{refresh_token}}

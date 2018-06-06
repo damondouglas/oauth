@@ -16,7 +16,7 @@ func TestCredentialsFromJSON(t *testing.T) {
 
 func TestConfigureOauthFromFilePath(t *testing.T) {
 	a := assert.New(t)
-	cred, err := credentialsFromPath("./mock/client_secret.json")
+	cred, err := CredentialsFromPath("./mock/client_secret.json")
 	a.HandleError(err)
 	a.Equals(cred.ClientID, "some_client_id.apps.googleusercontent.com")
 	a.Equals(cred.ClientSecret, "some_client_secret")

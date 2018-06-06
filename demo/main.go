@@ -1,30 +1,153 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"math/rand"
 	"net/http"
-	"os"
+	"net/url"
+	"strings"
+	"time"
+
+	"github.com/damondouglas/oauth/storage/aedatastore"
 
 	"github.com/damondouglas/oauth"
+	"github.com/damondouglas/oauth/authorization"
+	"github.com/damondouglas/oauth/exchange"
+	helper "github.com/damondouglas/oauth/helper/appengine"
+
 	"google.golang.org/appengine"
 )
 
+const pathToTunnelInfo = "tunnels"
+
+const pathToSecret = "secret/client_secret.json"
+
+var (
+	scopes = []string{"email", "profile"}
+)
+
 func main() {
-	auth, err := oauth.New("./secret/client_secret.json", "http://localhost:8080/oauth2callback", nil)
+	// This is just a bunch of yada yada to set up this demo.
+	// Just ignore it.
+	tunnelURL, err := getTunnelURL(pathToTunnelInfo)
+	redirectURL := fmt.Sprintf("%s/step1", tunnelURL.String())
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Panic(err)
 	}
-	login := oauth.LoginHandler(auth, true, false)
-	callback := oauth.CallbackHandler(auth)
-	http.HandleFunc("/", login)
-	http.HandleFunc("/oauth2callback", callback)
-	http.HandleFunc("/profile", getProfileHandler(auth))
+	http.HandleFunc("/", root)
+	http.HandleFunc("/step1", step1)
+	// End of the demo yada yada.
+
+	// Here is the real tofu of this demo.
+	// (I'm vegetarian so I say tofu instead of meat. ❤️🐂🐔🐐❤️)
+	// You probably might put `redirectURL` in your app.yaml environment_variables section.
+	config, err := oauth.ConfigFromPath(pathToSecret, redirectURL, scopes)
+	if err != nil {
+		log.Panic(err)
+	}
+	auth := authorization.New(config, redirectURL, scopes, true, true)
+	ctxHelper := new(helper.ContextHelper)
+	cltHelper := new(helper.ClientHelper)
+	h := new(exchange.Helper)
+	h.ClientHelper = cltHelper
+	h.ContextHelper = ctxHelper
+	h.StorageHelper = new(aedatastore.Datastore)
+	if err != nil {
+		log.Panic(err)
+	}
+	exch := exchange.New(config, h)
+
+	http.HandleFunc("/auth", auth.Handle)
+	http.HandleFunc("/token", exch.Handle)
 	appengine.Main()
 }
 
-func getProfileHandler(auth *oauth.Auth) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello, world!")
+// The entire code below is just more yada yada to set up this demo.
+// Just ignore it.
+func root(w http.ResponseWriter, r *http.Request) {
+	content, err := buildClientHTTP(r, pathToSecret)
+	if err != nil {
+		log.Panic(err)
 	}
+	fmt.Fprintln(w, content)
+}
+
+func step1(w http.ResponseWriter, r *http.Request) {
+	qry := r.URL.Query()
+	lines := []string{}
+	lines = append(lines, fmt.Sprintf("@code = %s", qry.Get("code")))
+
+	content := strings.Join(lines, "\n")
+	fmt.Fprintln(w, content)
+}
+
+func buildClientHTTP(r *http.Request, pathToSecret string) (string, error) {
+	tunnelURL, err := getTunnelURL(pathToTunnelInfo)
+	if err != nil {
+		log.Panic(err)
+	}
+	redirectURL := fmt.Sprintf("%s/step1", tunnelURL.String())
+	lines := []string{}
+	lines = append(lines, fmt.Sprintf("@base = %s", tunnelURL))
+	lines = append(lines, fmt.Sprintf("@redirect = %s", redirectURL))
+	lines = append(lines, fmt.Sprintf("@state = %s", randomString(12)))
+	lines = append(lines, fmt.Sprintf("@scope = %s", strings.Join(scopes, "+")))
+
+	config, err := oauth.CredentialsFromPath(pathToSecret)
+	if err != nil {
+		return "", err
+	}
+	lines = append(lines, fmt.Sprintf("@client_id = %s", config.ClientID))
+	lines = append(lines, fmt.Sprintf("@client_secret = %s", config.ClientSecret))
+	lines = append(lines, "###################################")
+	lines = append(lines, "# STEP 3")
+	lines = append(lines, fmt.Sprintf("# Open the following URL and add %s to Authorized redirect URIs:", redirectURL))
+	lines = append(lines, "# ")
+	lines = append(lines, fmt.Sprintf("# https://console.developers.google.com/apis/credentials/oauthclient/%s", config.ClientID))
+	lines = append(lines, "###################################")
+
+	return strings.Join(lines, "\n"), nil
+}
+
+type tunnelData struct {
+	Tunnels []struct {
+		URL   string `json:"public_url"`
+		Proto string
+	}
+}
+
+func getTunnelURL(path string) (*url.URL, error) {
+	var u *url.URL
+	var t *tunnelData
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(data, &t)
+	if err != nil {
+		return nil, err
+	}
+	for _, info := range t.Tunnels {
+		if info.Proto == "https" {
+			u, err = url.Parse(info.URL)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return u, nil
+}
+
+func randomString(n int) string {
+	rand.Seed(time.Now().UnixNano())
+	letterRunes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
 }

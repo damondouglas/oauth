@@ -43,7 +43,7 @@ func newOauthConfig(clientID, clientSecret, redirectURL string, scopes []string)
 
 // ConfigFromPath returns oauth2.Config from path to credentials.
 func ConfigFromPath(credentialsPath string, redirectURL string, scopes []string) (*oauth2.Config, error) {
-	cred, err := credentialsFromPath(credentialsPath)
+	cred, err := CredentialsFromPath(credentialsPath)
 	if err != nil {
 		return nil, err
 	}

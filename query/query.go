@@ -37,6 +37,7 @@ func init() {
 }
 
 type query struct {
+	Body         string
 	clientID     string
 	clientSecret string
 	code         string
@@ -74,7 +75,6 @@ func (s *AuthorizationQuery) IsValid() bool {
 		[]string{
 			s.clientID,
 			s.redirectURI,
-			s.state,
 		},
 	)
 	hasData = hasData && len(s.scope) > 0
@@ -241,7 +241,7 @@ func parse(queryData string) (query, error) {
 	if err != nil {
 		return q, err
 	}
-
+	q.Body = queryData
 	q.setClientID(qry)
 	q.setClientSecret(qry)
 	q.setCode(qry)

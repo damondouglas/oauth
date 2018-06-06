@@ -2,6 +2,7 @@ package authorization
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
 	"github.com/damondouglas/oauth/common"
@@ -46,9 +47,13 @@ func (a *Authorization) Handle(w http.ResponseWriter, r *http.Request) {
 	aq, err := query.ParseAuthorizationQuery(r.URL.RawQuery)
 	common.HandleError(w, err, "authorization query string could not be parsed")
 	if !aq.IsValid() {
+		log.Println(aq)
 		common.HandleError(w, errors.New(r.URL.RawQuery), "authorization query string could not be parsed")
 	}
 	if !a.isValid(aq) {
+		log.Println(a.oauthConfig.ClientID, aq.ClientID(), a.oauthConfig.ClientID == aq.ClientID())
+		log.Println(a.oauthConfig.RedirectURL, aq.RedirectURI(), a.oauthConfig.RedirectURL == aq.RedirectURI())
+		log.Println(aq.ResponseType(), codeKey, aq.ResponseType() == codeKey)
 		common.HandleError(w, errors.New(r.URL.RawQuery), "authorization query is not valid")
 	}
 	a.oauthConfig.ClientID = aq.ClientID()

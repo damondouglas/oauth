@@ -5,23 +5,26 @@ import (
 	"io/ioutil"
 )
 
-type credentials struct {
-	Web *webOauthCredentials `json:"web"`
+// Credentials represents OAuth2 secret credentials.
+type Credentials struct {
+	Web *WebOauthCredentials `json:"web"`
 }
 
-type webOauthCredentials struct {
+// WebOauthCredentials Web OAuth2 secret credentials.
+type WebOauthCredentials struct {
 	ClientID        string   `json:"client_id"`
 	ClientSecret    string   `json:"client_secret"`
 	RedirectURIList []string `json:"redirect_uris"`
 }
 
-func credentialsFromJSON(jsonData []byte) *webOauthCredentials {
-	var c *credentials
+func credentialsFromJSON(jsonData []byte) *WebOauthCredentials {
+	var c *Credentials
 	json.Unmarshal(jsonData, &c)
 	return c.Web
 }
 
-func credentialsFromPath(path string) (*webOauthCredentials, error) {
+// CredentialsFromPath loads WebOauthCredentials from given path.
+func CredentialsFromPath(path string) (*WebOauthCredentials, error) {
 	jsonData, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err

@@ -35,6 +35,7 @@ func TestParseTokenQuery(t *testing.T) {
 	a.Equals(qry.ClientSecret(), "GOOGLE_CLIENT_SECRET")
 	a.Equals(qry.GrantType(), "authorization_code")
 	a.Equals(qry.Code(), "AUTHORIZATION_CODE")
+	a.Equals(qry.Mode, AuthorizationCodeMode)
 
 	refreshQueryData := "client_id=GOOGLE_CLIENT_ID&client_secret=GOOGLE_CLIENT_SECRET&grant_type=refresh_token&refresh_token=REFRESH_TOKEN"
 	qry, err = ParseTokenQuery(refreshQueryData)
@@ -44,4 +45,5 @@ func TestParseTokenQuery(t *testing.T) {
 	a.Equals(qry.ClientSecret(), "GOOGLE_CLIENT_SECRET")
 	a.Equals(qry.GrantType(), "refresh_token")
 	a.Equals(qry.RefreshToken(), "REFRESH_TOKEN")
+	a.Equals(qry.Mode, RefreshTokenMode)
 }
