@@ -39,6 +39,7 @@ func main() {
 	}
 	http.HandleFunc("/", root)
 	http.HandleFunc("/step1", step1)
+	http.HandleFunc("/info", info)
 	// End of the demo yada yada.
 
 	// Here is the real tofu of this demo.
@@ -67,6 +68,36 @@ func main() {
 
 // The entire code below is just more yada yada to set up this demo.
 // Just ignore it.
+
+type infoRequest struct {
+	IDToken string `json:"id_token"`
+}
+
+type infoResponse struct {
+	Email string
+}
+
+func info(w http.ResponseWriter, r *http.Request) {
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Panic(err)
+	}
+	defer r.Body.Close()
+	var i *infoRequest
+	resp := new(infoResponse)
+	err = json.Unmarshal(data, &i)
+	datastore := new(aedatastore.Datastore)
+	ctxHelper := new(helper.ContextHelper)
+	ctx := ctxHelper.Context(r)
+	u, err := datastore.GetByIDToken(ctx, i.IDToken)
+	if err != nil {
+		log.Panic(err)
+	}
+	resp.Email = u.Email
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
 func root(w http.ResponseWriter, r *http.Request) {
 	content, err := buildClientHTTP(r, pathToSecret)
 	if err != nil {

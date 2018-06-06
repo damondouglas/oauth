@@ -11,30 +11,49 @@ import (
 )
 
 const userKindToken = "User"
-const keyOnlyFilterToken = "__key__ >"
+const iDTokenKey = "id_token"
 
 // Datastore represents appengine datastore interface
 type Datastore struct {
 }
 
 type datastoreUser struct {
-	Email             string
-	ID                string
-	AuthorizationCode string
-	AccessToken       string
-	RefreshToken      string
-	Expiry            time.Time
+	Email        string
+	IDToken      string
+	IDTokenPartA string
+	IDTokenPartB string
+	AccessToken  string
+	RefreshToken string
+	Expiry       time.Time
+}
+
+func splitToken(tokenValue string) []string {
+	n := len(tokenValue)
+	var a int
+	if n%2 == 1 {
+		a = (n - 1) / 2
+	} else {
+		a = n / 2
+	}
+	return []string{tokenValue[:a], tokenValue[a:]}
 }
 
 func from(user *storage.User) *datastoreUser {
 	du := new(datastoreUser)
 	du.Email = user.Email
-	du.ID = user.ID
-	du.AuthorizationCode = user.AuthorizationCode
+
 	if user.Token != nil {
 		du.AccessToken = user.Token.AccessToken
 		du.RefreshToken = user.Token.RefreshToken
 		du.Expiry = user.Token.Expiry
+		temp := user.Token.Extra(iDTokenKey)
+		IDToken, ok := temp.(string)
+		if ok {
+			du.IDToken = IDToken
+			tokens := splitToken(IDToken)
+			du.IDTokenPartA = tokens[0]
+			du.IDTokenPartB = tokens[1]
+		}
 	}
 
 	return du
@@ -43,8 +62,6 @@ func from(user *storage.User) *datastoreUser {
 func (du *datastoreUser) export() *storage.User {
 	u := new(storage.User)
 	u.Email = du.Email
-	u.ID = du.ID
-	u.AuthorizationCode = du.AuthorizationCode
 	u.Token = new(oauth2.Token)
 	u.Token.RefreshToken = du.RefreshToken
 	u.Token.AccessToken = du.AccessToken
@@ -93,21 +110,7 @@ func (d *Datastore) Save(ctx context.Context, u *storage.User) error {
 	return nil
 }
 
-// GetByEmail retreives storage.User from email address.
-func (d *Datastore) GetByEmail(ctx context.Context, email string) (*storage.User, error) {
-	var du []datastoreUser
-	u := &storage.User{Email: email}
-	k := d.newKey(ctx, u)
-	q := datastore.NewQuery(userKindToken).Filter(keyOnlyFilterToken, k)
-	if _, err := q.GetAll(ctx, &du); err != nil {
-		return nil, err
-	}
-	if len(du) == 0 {
-		return nil, errors.New("query by email resulted empty")
-	}
-	return du[0].export(), nil
-}
-
+// GetByRefreshToken loads storage.User from refreshToken.
 func (d *Datastore) GetByRefreshToken(ctx context.Context, refreshToken string) (*storage.User, error) {
 	var du []datastoreUser
 	q := datastore.NewQuery(userKindToken).Filter("RefreshToken =", refreshToken)
@@ -118,4 +121,19 @@ func (d *Datastore) GetByRefreshToken(ctx context.Context, refreshToken string) 
 		return nil, errors.New("query by refresh token resulted empty")
 	}
 	return du[0].export(), nil
+}
+
+// GetByIDToken loads storage.User from IDToken.
+func (d *Datastore) GetByIDToken(ctx context.Context, IDToken string) (*storage.User, error) {
+	var du []datastoreUser
+	tokens := splitToken(IDToken)
+	q := datastore.NewQuery(userKindToken).Filter("IDTokenPartA =", tokens[0]).Filter("IDTokenPartB =", tokens[1])
+	if _, err := q.GetAll(ctx, &du); err != nil {
+		return nil, err
+	}
+	if len(du) == 0 {
+		return nil, errors.New("query by IDtoken resulted empty")
+	}
+	return du[0].export(), nil
+
 }

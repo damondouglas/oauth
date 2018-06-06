@@ -97,7 +97,6 @@ func (e *Exchange) code(w http.ResponseWriter, r *http.Request, qry *query.Token
 	common.HandleError(w, err, "authorization code could not be exchanged")
 	user, err := storage.GetUserFromToken(ctx, e.oauthConfig, tok)
 	common.HandleError(w, err, "User info could not be loaded from exchanged token")
-	user.AuthorizationCode = code
 	err = e.helper.StorageHelper.Save(ctx, user)
 	common.HandleError(w, err, "user info could not be stored")
 	c := new(codeResponse)

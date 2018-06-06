@@ -18,8 +18,9 @@ GET http://localhost:8080
 
 ###################################
 # STEP 2
-# Paste ENTIRE response below this line
+# Paste ENTIRE response below this line (Don't worry STEP 3 will be in the response)
 ###################################
+
 
 
 
@@ -54,7 +55,6 @@ client_id={{client_id}}&client_secret={{client_secret}}&grant_type=authorization
 ###################################
 # STEP 7 
 # Create variables below from response in STEP 6
-# @access_token = ...
 # @refresh_token = ...
 ###################################
 
@@ -68,3 +68,17 @@ POST {{base}}/token
 Content-Type: application/x-www-form-urlencoded
 
 client_id={{client_id}}&client_secret={{client_secret}}&grant_type=refresh_token&refresh_token={{refresh_token}}
+
+###################################
+# OPTIONAL FUN
+# Navigate to http://localhost:8000/datastore
+# Get IDToken from User Entity datastore and supply below:
+# @id_token = ...
+###################################
+
+POST {{base}}/info
+Content-Type: application/json
+
+{
+    "id_token": "{{id_token}}"
+}
